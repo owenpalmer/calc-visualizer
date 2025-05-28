@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Interactive Function & Derivative Plotter</title>
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script>
@@ -25,109 +26,6 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        body {
-            font-family: 'Georgia', serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f1e8;
-            color: #5d4e37;
-        }
-
-        .title {
-            text-align: center;
-            font-size: 28px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-            color: #5d4e37;
-        }
-
-        .input-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 40px;
-        }
-
-        .input-box {
-            background-color: #ede4d3;
-            border: 2px solid #d4c4a8;
-            border-radius: 15px;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .function-label {
-            font-size: 18px;
-            font-style: italic;
-            color: #5d4e37;
-            margin-right: 5px;
-        }
-
-        .equation-input {
-            background-color: #f8f5f0;
-            border: 1px solid #d4c4a8;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 16px;
-            font-family: 'Courier New', monospace;
-            color: #5d4e37;
-            min-width: 200px;
-        }
-
-        .equation-input:focus {
-            outline: none;
-            border-color: #b8a082;
-            box-shadow: 0 0 5px rgba(184, 160, 130, 0.3);
-        }
-
-        .plot-button {
-            background-color: #d4c4a8;
-            border: 1px solid #b8a082;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 16px;
-            color: #5d4e37;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .plot-button:hover {
-            background-color: #c4b49a;
-        }
-
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: #000;
-            shape-rendering: crispEdges
-        }
-
-        .line {
-            fill: none;
-            stroke: steelblue;
-            stroke-width: 2px
-        }
-
-        .hover-circle,
-        .deriv-circle {
-            pointer-events: none
-        }
-
-        .tangent-line {
-            stroke-width: 2px;
-            pointer-events: none
-        }
-
-        .slope-text,
-        .deriv-text {
-            font-size: 12px;
-            pointer-events: none
-        }
-    </style>
 </head>
 
 <body>

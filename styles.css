@@ -1,0 +1,207 @@
+body {
+    font-family: 'Georgia', serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f1e8;
+    color: #5d4e37;
+}
+
+.title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    color: #5d4e37;
+}
+
+.input-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.input-box {
+    background-color: #ede4d3;
+    border: 2px solid #d4c4a8;
+    border-radius: 15px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.function-label {
+    font-size: 18px;
+    font-style: italic;
+    color: #5d4e37;
+    margin-right: 5px;
+}
+
+.equation-input {
+    background-color: #f8f5f0;
+    border: 1px solid #d4c4a8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    color: #5d4e37;
+    min-width: 200px;
+}
+
+.equation-input:focus {
+    outline: none;
+    border-color: #b8a082;
+    box-shadow: 0 0 5px rgba(184, 160, 130, 0.3);
+}
+
+.plot-button {
+    background-color: #d4c4a8;
+    border: 1px solid #b8a082;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 16px;
+    color: #5d4e37;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.plot-button:hover {
+    background-color: #c4b49a;
+}
+
+/* Main chart area layout */
+.chart-area {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.chart-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid #e0d5c7;
+}
+
+/* Equations on the left */
+.equation-left {
+    flex: 1;
+    min-width: 0;
+    padding: 15px 20px;
+    background-color: #f9f6f1;
+    border: 2px solid #e6dcc9;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.equation-left .MathJax {
+    font-size: 1.2em !important;
+}
+
+/* Charts on the right */
+.chart-center {
+    flex-shrink: 0;
+    background-color: #fdfdfd;
+    border: 1px solid #e0d5c7;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.chart-center svg {
+    display: block;
+    border-radius: 4px;
+}
+
+/* Chart styling */
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #5d4e37;
+    stroke-width: 1.5px;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    fill: #5d4e37;
+    font-size: 12px;
+    font-family: 'Georgia', serif;
+}
+
+.line {
+    fill: none;
+    stroke: #2c5aa0;
+    stroke-width: 3px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.hover-circle,
+.deriv-circle {
+    pointer-events: none;
+    stroke-width: 2px;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2));
+}
+
+.tangent-line {
+    stroke-width: 2px;
+    pointer-events: none;
+    stroke-dasharray: 5,5;
+    opacity: 0.8;
+}
+
+.slope-text,
+.deriv-text {
+    font-size: 13px;
+    font-weight: bold;
+    pointer-events: none;
+    font-family: 'Georgia', serif;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .chart-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .equation-left {
+        margin-bottom: 15px;
+    }
+    
+    .chart-center svg {
+        width: 100%;
+        height: auto;
+    }
+    
+    body {
+        padding: 10px;
+    }
+}
+
+/* Enhanced equation styling */
+.equation-left mjx-container {
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.equation-left mjx-math {
+    color: #5d4e37 !important;
+}
+
+/* Chart background styling */
+.chart-center {
+    background: linear-gradient(135deg, #fdfdfd 0%, #f8f5f0 100%);
+}
