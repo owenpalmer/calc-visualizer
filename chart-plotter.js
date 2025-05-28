@@ -1,0 +1,145 @@
+// Chart plotting and interaction functionality
+
+function plot(eqn) {
+    renderEquations(eqn);
+    const expr = math.compile(eqn);
+    const dexpr = math.derivative(eqn, 'x').compile();
+
+    const xs = d3.range(0, 10.0001, 0.01);
+    const data = xs.map(x => ({ x, y: expr.evaluate({ x }) }));
+    const derivArr = xs.map(x => ({ x, dy: dexpr.evaluate({ x }) }));
+
+    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+    const width = 700 - margin.left - margin.right;
+
+    d3.selectAll('#chart1 > *').remove();
+    d3.selectAll('#chart2 > *').remove();
+
+    const xScale = d3.scaleLinear().domain(d3.extent(data, d => d.x)).range([0, width]);
+    const maxAbsDy = d3.max(derivArr, d => Math.abs(d.dy));
+    const epsilonDy = maxAbsDy * 0.02;
+    const epsilonX = 0.1;
+
+    // Chart1
+    const height1 = 300 - margin.top - margin.bottom;
+    const yScale = d3.scaleLinear()
+        .domain([d3.min(data, d => d.y), d3.max(data, d => d.y)]).nice()
+        .range([height1, 0]);
+    const g1 = d3.select('#chart1').append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    g1.append('g').attr('transform', `translate(0,${yScale(0)})`).call(d3.axisBottom(xScale));
+    g1.append('g').call(d3.axisLeft(yScale));
+    g1.append('path').datum(data).attr('class', 'line')
+        .attr('d', d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)));
+
+    // Chart2
+    const height2 = 200 - margin.top - margin.bottom;
+    const y2Scale = d3.scaleLinear().domain(d3.extent(derivArr, d => d.dy)).nice().range([height2, 0]);
+    const zeroY2 = y2Scale(0);
+    const g2 = d3.select('#chart2').append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    g2.append('rect').attr('x', 0).attr('y', 0).attr('width', width).attr('height', zeroY2).attr('fill', '#d4edda');
+    g2.append('rect').attr('x', 0).attr('y', zeroY2).attr('width', width).attr('height', height2 - zeroY2).attr('fill', '#f8d7da');
+    g2.append('g').attr('transform', `translate(0,${zeroY2})`).call(d3.axisBottom(xScale));
+    g2.append('g').call(d3.axisLeft(y2Scale));
+    g2.append('path').datum(derivArr).attr('class', 'line')
+        .attr('d', d3.line().x(d => xScale(d.x)).y(d => y2Scale(d.dy)));
+
+    // Hover elements
+    const hoverCircle = g1.append('circle').attr('r', 5).style('display', 'none');
+    const tangentLine = g1.append('line').style('display', 'none');
+    const slopeText = g1.append('text').style('display', 'none');
+    const hoverCircle2 = g2.append('circle').attr('r', 5).style('display', 'none');
+    const derivText = g2.append('text').style('display', 'none');
+    const bisect = d3.bisector(d => d.x).left;
+
+    // Track current snapped position
+    let currentSnappedX = null;
+
+    function attachOverlay(group, height) {
+        group.append('rect').attr('width', width).attr('height', height).attr('fill', 'none').attr('pointer-events', 'all')
+            .on('mouseover', () => {
+                hoverCircle.style('display', null);
+                tangentLine.style('display', null);
+                slopeText.style('display', null);
+                hoverCircle2.style('display', null);
+                derivText.style('display', null);
+            })
+            .on('mouseout', () => {
+                hoverCircle.style('display', 'none');
+                tangentLine.style('display', 'none');
+                slopeText.style('display', 'none');
+                hoverCircle2.style('display', 'none');
+                derivText.style('display', 'none');
+                currentSnappedX = null;
+            })
+            .on('mousemove', event => {
+                const [mx] = d3.pointer(event, group.node());
+                let x0 = xScale.invert(mx);
+                
+                // Find candidates for snapping (points with near-zero derivative)
+                const candidates = derivArr.filter(d => Math.abs(d.dy) < epsilonDy);
+                
+                // Check if we should snap to a zero-slope point
+                let shouldSnap = false;
+                let snapTarget = null;
+                
+                if (currentSnappedX !== null) {
+                    // If we're already snapped, check if mouse is still within snap range
+                    const snapCandidate = candidates.find(d => Math.abs(d.x - currentSnappedX) < 0.01);
+                    if (snapCandidate && Math.abs(x0 - currentSnappedX) < epsilonX * 2) {
+                        shouldSnap = true;
+                        snapTarget = snapCandidate;
+                    } else {
+                        currentSnappedX = null; // Release snap
+                    }
+                } else {
+                    // Not currently snapped, check if we should snap to a nearby zero-slope point
+                    const nearbyCandidate = candidates.find(d => Math.abs(d.x - x0) < epsilonX);
+                    if (nearbyCandidate) {
+                        shouldSnap = true;
+                        snapTarget = nearbyCandidate;
+                        currentSnappedX = nearbyCandidate.x;
+                    }
+                }
+                
+                if (shouldSnap && snapTarget) {
+                    x0 = snapTarget.x;
+                }
+                
+                const y0 = expr.evaluate({ x: x0 });
+                const rawDy = dexpr.evaluate({ x: x0 });
+                const m = Math.abs(rawDy) < epsilonDy ? 0 : rawDy;
+                const color = m === 0 ? 'grey' : (m > 0 ? 'green' : 'red');
+                const fill = m === 0 ? 'lightgrey' : (m > 0 ? '#c3e6cb' : '#f5c6cb');
+
+                hoverCircle.attr('cx', xScale(x0)).attr('cy', yScale(y0)).attr('fill', fill).attr('stroke', color);
+                tangentLine.attr('x1', xScale(x0 - 1)).attr('y1', yScale(y0 - m)).attr('x2', xScale(x0 + 1)).attr('y2', yScale(y0 + m)).style('stroke', color);
+                slopeText.attr('x', xScale(x0) + 5).attr('y', yScale(y0) - 5).attr('fill', color).text('m = ' + m.toFixed(2));
+
+                hoverCircle2.attr('cx', xScale(x0)).attr('cy', y2Scale(m));
+                derivText.attr('x', xScale(x0) + 5).attr('y', y2Scale(m) - 5).text('y = ' + m.toFixed(2));
+            });
+    }
+
+    attachOverlay(g1, height1);
+    attachOverlay(g2, height2);
+}
+
+// Initialize the application
+function initializeApp() {
+    // Wait for MathJax to be ready before plotting
+    if (window.MathJax) {
+        MathJax.startup.promise.then(() => {
+            plot(document.getElementById('equation').value);
+        });
+    } else {
+        plot(document.getElementById('equation').value);
+    }
+    
+    // Add event listener for the plot button
+    document.getElementById('updateBtn').addEventListener('click', () => {
+        plot(document.getElementById('equation').value);
+    });
+}
+
+// Initialize when page loads
+window.addEventListener('load', initializeApp);
