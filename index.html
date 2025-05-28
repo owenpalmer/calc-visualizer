@@ -109,21 +109,24 @@
         .chart-row {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 30px;
             width: 100%;
-            max-width: 1000px;
         }
 
         .rendered-equation {
-            min-width: 200px;
+            width: 200px;
             font-size: 20px;
             color: #5d4e37;
             text-align: center;
-            order: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .chart-container {
-            order: 2;
+            display: flex;
+            justify-content: center;
         }
 
         .axis path,
@@ -221,7 +224,7 @@
             const xScale = d3.scaleLinear().domain(d3.extent(data, d => d.x)).range([0, width]);
             const maxAbsDy = d3.max(derivArr, d => Math.abs(d.dy));
             const epsilonDy = maxAbsDy * 0.02;
-            const epsilonX = 0.01;
+            const epsilonX = 0.1;
 
             // Chart1
             const height1 = 300 - margin.top - margin.bottom;
@@ -254,6 +257,9 @@
             const derivText = g2.append('text').style('display', 'none');
             const bisect = d3.bisector(d => d.x).left;
 
+            // Track current snapped position
+            let currentSnappedX = null;
+
             function attachOverlay(group, height) {
                 group.append('rect').attr('width', width).attr('height', height).attr('fill', 'none').attr('pointer-events', 'all')
                     .on('mouseover', () => {
@@ -269,15 +275,42 @@
                         slopeText.style('display', 'none');
                         hoverCircle2.style('display', 'none');
                         derivText.style('display', 'none');
+                        currentSnappedX = null;
                     })
                     .on('mousemove', event => {
                         const [mx] = d3.pointer(event, group.node());
                         let x0 = xScale.invert(mx);
-                        const candidates = derivArr.filter(d => Math.abs(d.x - x0) < epsilonX && Math.abs(d.dy) < epsilonDy);
-                        if (candidates.length) {
-                            const nearest = candidates.reduce((a, b) => Math.abs(b.x - x0) < Math.abs(a.x - x0) ? b : a);
-                            x0 = nearest.x;
+                        
+                        // Find candidates for snapping (points with near-zero derivative)
+                        const candidates = derivArr.filter(d => Math.abs(d.dy) < epsilonDy);
+                        
+                        // Check if we should snap to a zero-slope point
+                        let shouldSnap = false;
+                        let snapTarget = null;
+                        
+                        if (currentSnappedX !== null) {
+                            // If we're already snapped, check if mouse is still within snap range
+                            const snapCandidate = candidates.find(d => Math.abs(d.x - currentSnappedX) < 0.01);
+                            if (snapCandidate && Math.abs(x0 - currentSnappedX) < epsilonX * 2) {
+                                shouldSnap = true;
+                                snapTarget = snapCandidate;
+                            } else {
+                                currentSnappedX = null; // Release snap
+                            }
+                        } else {
+                            // Not currently snapped, check if we should snap to a nearby zero-slope point
+                            const nearbyCandidate = candidates.find(d => Math.abs(d.x - x0) < epsilonX);
+                            if (nearbyCandidate) {
+                                shouldSnap = true;
+                                snapTarget = nearbyCandidate;
+                                currentSnappedX = nearbyCandidate.x;
+                            }
                         }
+                        
+                        if (shouldSnap && snapTarget) {
+                            x0 = snapTarget.x;
+                        }
+                        
                         const y0 = expr.evaluate({ x: x0 });
                         const rawDy = dexpr.evaluate({ x: x0 });
                         const m = Math.abs(rawDy) < epsilonDy ? 0 : rawDy;
