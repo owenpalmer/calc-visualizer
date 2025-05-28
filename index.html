@@ -99,36 +99,6 @@
             background-color: #c4b49a;
         }
 
-        .chart-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 40px;
-        }
-
-        .chart-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 30px;
-            width: 100%;
-        }
-
-        .rendered-equation {
-            width: 200px;
-            font-size: 20px;
-            color: #5d4e37;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chart-container {
-            display: flex;
-            justify-content: center;
-        }
-
         .axis path,
         .axis line {
             fill: none;
@@ -172,15 +142,15 @@
     </div>
 
     <div class="chart-area">
-        <div class="chart-row">
-            <div class="rendered-equation" id="render-fx"></div>
-            <div class="chart-container">
+        <div class="chart-container">
+            <div class="equation-left" id="render-fx"></div>
+            <div class="chart-center">
                 <svg id="chart1" width="700" height="300"></svg>
             </div>
         </div>
-        <div class="chart-row">
-            <div class="rendered-equation" id="render-fpx"></div>
-            <div class="chart-container">
+        <div class="chart-container">
+            <div class="equation-left" id="render-fpx"></div>
+            <div class="chart-center">
                 <svg id="chart2" width="700" height="200"></svg>
             </div>
         </div>
