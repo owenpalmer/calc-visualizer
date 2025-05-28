@@ -23,14 +23,6 @@ function scaleEquationsToFit() {
             chartContainer.classList.remove('stacked-layout');
             chartContainer.classList.add('side-by-side-layout');
         }
-        
-        // Reset any previous styling
-        // const mjxContainer = container.querySelector('mjx-container');
-        // if (mjxContainer) {
-        //     mjxContainer.style.fontSize = '';
-        //     mjxContainer.style.transform = '';
-        //     mjxContainer.style.transformOrigin = '';
-        // }
     });
 }
 
