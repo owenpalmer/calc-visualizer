@@ -11,23 +11,23 @@ let isDragging = false; // Track dragging state
 function calculateCenteredDomains(data, derivArr) {
     // Calculate symmetric domains around (0,0)
     const maxAbsX = Math.max(
-        Math.abs(d3.min(data, d => d.x)), 
+        Math.abs(d3.min(data, d => d.x)),
         Math.abs(d3.max(data, d => d.x))
     );
     const maxAbsY = Math.max(
-        Math.abs(d3.min(data, d => d.y)), 
+        Math.abs(d3.min(data, d => d.y)),
         Math.abs(d3.max(data, d => d.y))
     );
     const maxAbsDy = Math.max(
-        Math.abs(d3.min(derivArr, d => d.dy)), 
+        Math.abs(d3.min(derivArr, d => d.dy)),
         Math.abs(d3.max(derivArr, d => d.dy))
     );
-    
+
     // Add padding and ensure minimum domain size
     const xPadding = Math.max(maxAbsX * 0.1, 1);
     const yPadding = Math.max(maxAbsY * 0.1, 1);
     const dyPadding = Math.max(maxAbsDy * 0.1, 1);
-    
+
     return {
         xDomain: [-(maxAbsX + xPadding), maxAbsX + xPadding],
         yDomain: [-(maxAbsY + yPadding), maxAbsY + yPadding],
@@ -38,94 +38,94 @@ function calculateCenteredDomains(data, derivArr) {
 function createZoomBehavior(chartGroup, isChart1, xScale, yScale, width, height, hoverElements) {
     const zoom = d3.zoom()
         .scaleExtent([0.1, 10])
-        .on('start', function(event) {
+        .on('start', function (event) {
             isDragging = true;
             // Hide hover elements when dragging starts
             hoverElements.forEach(element => element.style('display', 'none'));
         })
-        .on('zoom', function(event) {
+        .on('zoom', function (event) {
             if (isUpdatingTransform) return;
-            
+
             const transform = event.transform;
-            
+
             // Update shared zoom scale and x-pan
             sharedZoomScale = transform.k;
             sharedXTransform = d3.zoomIdentity.translate(transform.x, 0).scale(transform.k);
-            
+
             // Update individual y-pan for this chart
             if (isChart1) {
                 chart1YPan = transform.y;
             } else {
                 chart2YPan = transform.y;
             }
-            
+
             updateAllChartTransforms();
         })
-        .on('end', function(event) {
+        .on('end', function (event) {
             isDragging = false;
         });
-    
+
     return zoom;
 }
 
 function updateAllChartTransforms() {
     if (isUpdatingTransform) return;
     isUpdatingTransform = true;
-    
+
     // Get all chart elements
     const chart1Group = d3.select('#chart1 g');
     const chart2Group = d3.select('#chart2 g');
-    
+
     if (chart1Group.empty() || chart2Group.empty()) {
         isUpdatingTransform = false;
         return;
     }
-    
+
     // Get original scales from the stored data
     const chart1Data = chart1Group.datum();
     const chart2Data = chart2Group.datum();
-    
+
     if (!chart1Data || !chart2Data) {
         isUpdatingTransform = false;
         return;
     }
-    
+
     const xScale = chart1Data.xScale;
     const yScale = chart1Data.yScale;
     const y2Scale = chart2Data.y2Scale;
     const width = chart1Data.width;
     const height1 = chart1Data.height1;
     const height2 = chart2Data.height2;
-    
+
     // Create synchronized transforms
     // X-axis: shared zoom and pan
     const newXScale = sharedXTransform.rescaleX(xScale);
-    
+
     // Y-axis: shared zoom scale but independent pan
     const chart1YTransform = d3.zoomIdentity.translate(0, chart1YPan).scale(sharedZoomScale);
     const chart2YTransform = d3.zoomIdentity.translate(0, chart2YPan).scale(sharedZoomScale);
     const newY1Scale = chart1YTransform.rescaleY(yScale);
     const newY2Scale = chart2YTransform.rescaleY(y2Scale);
-    
+
     // Update axes for both charts
     chart1Group.select('.x-axis')
         .call(d3.axisBottom(newXScale));
     chart1Group.select('.y-axis')
         .call(d3.axisLeft(newY1Scale));
-    
+
     chart2Group.select('.x-axis')
         .call(d3.axisBottom(newXScale));
     chart2Group.select('.y-axis')
         .call(d3.axisLeft(newY2Scale));
-    
+
     // Remove ALL grid-related elements properly
     chart1Group.selectAll('.grid-line-x, .grid-line-y, .axis-zero-x, .axis-zero-y').remove();
     chart2Group.selectAll('.grid-line-x, .grid-line-y, .axis-zero-x, .axis-zero-y').remove();
-    
+
     // Add grid lines
     addGridLines(chart1Group, newXScale, newY1Scale, width, height1);
     addGridLines(chart2Group, newXScale, newY2Scale, width, height2);
-    
+
     // Update function line - use the stored data to ensure it doesn't disappear
     const functionPath = chart1Group.select('.function-line');
     if (!functionPath.empty() && chart1Data.data) {
@@ -136,7 +136,7 @@ function updateAllChartTransforms() {
                 .y(d => newY1Scale(d.y))
             );
     }
-    
+
     // Update derivative line - use the stored data to ensure it doesn't disappear
     const derivativePath = chart2Group.select('.derivative-line');
     if (!derivativePath.empty() && chart2Data.derivArr) {
@@ -147,7 +147,7 @@ function updateAllChartTransforms() {
                 .y(d => newY2Scale(d.dy))
             );
     }
-    
+
     // Update derivative background regions
     const zeroY2 = newY2Scale(0);
     chart2Group.select('.positive-region')
@@ -156,7 +156,7 @@ function updateAllChartTransforms() {
     chart2Group.select('.negative-region')
         .attr('y', zeroY2)
         .attr('height', Math.max(0, height2 - zeroY2));
-    
+
     // Update zoom overlays to reflect current combined transform
     const chart1CombinedTransform = d3.zoomIdentity
         .translate(sharedXTransform.x, chart1YPan)
@@ -164,14 +164,14 @@ function updateAllChartTransforms() {
     const chart2CombinedTransform = d3.zoomIdentity
         .translate(sharedXTransform.x, chart2YPan)
         .scale(sharedZoomScale);
-    
+
     chart1Group.select('.zoom-overlay').call(
         chart1Data.zoom1.transform, chart1CombinedTransform
     );
     chart2Group.select('.zoom-overlay').call(
         chart2Data.zoom2.transform, chart2CombinedTransform
     );
-    
+
     isUpdatingTransform = false;
 }
 
@@ -188,7 +188,7 @@ function addGridLines(group, xScale, yScale, width, height) {
         .attr('y2', height)
         .attr('stroke', '#e0e0e0')
         .attr('stroke-width', 0.5);
-    
+
     // Y grid lines - use data binding to avoid duplicates
     const yTicks = yScale.ticks();
     group.selectAll('.grid-line-y')
@@ -201,7 +201,7 @@ function addGridLines(group, xScale, yScale, width, height) {
         .attr('y2', d => yScale(d))
         .attr('stroke', '#e0e0e0')
         .attr('stroke-width', 0.5);
-    
+
     // Highlight x=0 line (only if 0 is in domain)
     if (xScale.domain()[0] <= 0 && xScale.domain()[1] >= 0) {
         group.selectAll('.axis-zero-x')
@@ -215,7 +215,7 @@ function addGridLines(group, xScale, yScale, width, height) {
             .attr('stroke', '#666')
             .attr('stroke-width', 1);
     }
-    
+
     // Highlight y=0 line (only if 0 is in domain)
     if (yScale.domain()[0] <= 0 && yScale.domain()[1] >= 0) {
         group.selectAll('.axis-zero-y')
@@ -250,7 +250,7 @@ function plot(eqn) {
 
     // Calculate centered domains
     const domains = calculateCenteredDomains(data, derivArr);
-    
+
     // Create scales with centered domains
     const xScale = d3.scaleLinear().domain(domains.xDomain).range([0, width]);
     const yScale = d3.scaleLinear().domain(domains.yDomain).range([300 - margin.top - margin.bottom, 0]);
@@ -272,7 +272,7 @@ function plot(eqn) {
         .attr('width', width)
         .attr('height', Math.max(0, zeroY2))
         .attr('fill', '#d4edda');
-    
+
     g2.append('rect')
         .attr('class', 'negative-region')
         .attr('x', 0)
@@ -325,7 +325,7 @@ function plot(eqn) {
     const slopeText = g1.append('text').style('display', 'none');
     const hoverCircle2 = g2.append('circle').attr('r', 5).style('display', 'none');
     const derivText = g2.append('text').style('display', 'none');
-    
+
     // Array of hover elements for easy management
     const hoverElements = [hoverCircle, tangentLine, slopeText, hoverCircle2, derivText];
 
@@ -344,7 +344,7 @@ function plot(eqn) {
         expr: expr,
         dexpr: dexpr
     });
-    
+
     g2.datum({
         xScale: xScale,
         y2Scale: y2Scale,
@@ -403,25 +403,25 @@ function plot(eqn) {
             })
             .on('mousemove', event => {
                 if (isDragging) return; // Don't show hover elements while dragging
-                
+
                 const [mx] = d3.pointer(event, overlay.node());
-                
+
                 // Create current scales using the shared zoom and individual pans
                 const currentXScale = sharedXTransform.rescaleX(xScale);
                 const chart1YTransform = d3.zoomIdentity.translate(0, chart1YPan).scale(sharedZoomScale);
                 const chart2YTransform = d3.zoomIdentity.translate(0, chart2YPan).scale(sharedZoomScale);
                 const currentYScale = chart1YTransform.rescaleY(yScale);
                 const currentY2Scale = chart2YTransform.rescaleY(y2Scale);
-                
+
                 let x0 = currentXScale.invert(mx);
-                
+
                 // Find candidates for snapping (points with near-zero derivative)
                 const candidates = derivArr.filter(d => Math.abs(d.dy) < epsilonDy);
-                
+
                 // Check if we should snap to a zero-slope point
                 let shouldSnap = false;
                 let snapTarget = null;
-                
+
                 if (currentSnappedX !== null) {
                     // If we're already snapped, check if mouse is still within snap range
                     const snapCandidate = candidates.find(d => Math.abs(d.x - currentSnappedX) < 0.01);
@@ -440,11 +440,11 @@ function plot(eqn) {
                         currentSnappedX = nearbyCandidate.x;
                     }
                 }
-                
+
                 if (shouldSnap && snapTarget) {
                     x0 = snapTarget.x;
                 }
-                
+
                 const y0 = expr.evaluate({ x: x0 });
                 const rawDy = dexpr.evaluate({ x: x0 });
                 const m = Math.abs(rawDy) < epsilonDy ? 0 : rawDy;
@@ -481,7 +481,13 @@ function initializeApp() {
     } else {
         plot(document.getElementById('equation').value);
     }
-    
+
+    document.getElementById('equation').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            plot(document.getElementById('equation').value);
+        }
+    });
+
     // Add event listener for the plot button
     document.getElementById('updateBtn').addEventListener('click', () => {
         plot(document.getElementById('equation').value);
