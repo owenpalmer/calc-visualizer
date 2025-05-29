@@ -47,7 +47,8 @@ body {
     font-size: 16px;
     font-family: 'Courier New', monospace;
     color: #5d4e37;
-    min-width: 200px;
+    min-width: 400px;
+    text-align: center;
 }
 
 .equation-input:focus {
