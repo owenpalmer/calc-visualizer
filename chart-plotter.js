@@ -1,9 +1,10 @@
 // Chart plotting and interaction functionality
 
 // Shared zoom state for synchronization between charts
-let currentXTransform = d3.zoomIdentity; // Shared x-axis transform
-let currentY1Transform = d3.zoomIdentity; // Independent y-axis transform for chart1
-let currentY2Transform = d3.zoomIdentity; // Independent y-axis transform for chart2
+let sharedXTransform = d3.zoomIdentity; // Shared x-axis transform (zoom + pan)
+let sharedZoomScale = 1; // Shared zoom scale factor for both axes
+let chart1YPan = 0; // Independent y-axis pan for chart1
+let chart2YPan = 0; // Independent y-axis pan for chart2
 let isUpdatingTransform = false; // Prevent infinite loops
 let isDragging = false; // Track dragging state
 
@@ -47,16 +48,15 @@ function createZoomBehavior(chartGroup, isChart1, xScale, yScale, width, height,
             
             const transform = event.transform;
             
-            // Extract x and y components of the transform
-            const xTransform = d3.zoomIdentity.translate(transform.x, 0).scale(transform.k);
-            const yTransform = d3.zoomIdentity.translate(0, transform.y).scale(transform.k);
+            // Update shared zoom scale and x-pan
+            sharedZoomScale = transform.k;
+            sharedXTransform = d3.zoomIdentity.translate(transform.x, 0).scale(transform.k);
             
-            // Update shared x-transform and individual y-transform
-            currentXTransform = xTransform;
+            // Update individual y-pan for this chart
             if (isChart1) {
-                currentY1Transform = yTransform;
+                chart1YPan = transform.y;
             } else {
-                currentY2Transform = yTransform;
+                chart2YPan = transform.y;
             }
             
             updateAllChartTransforms();
@@ -97,10 +97,15 @@ function updateAllChartTransforms() {
     const height1 = chart1Data.height1;
     const height2 = chart2Data.height2;
     
-    // Apply transforms to scales
-    const newXScale = currentXTransform.rescaleX(xScale);
-    const newY1Scale = currentY1Transform.rescaleY(yScale);
-    const newY2Scale = currentY2Transform.rescaleY(y2Scale);
+    // Create synchronized transforms
+    // X-axis: shared zoom and pan
+    const newXScale = sharedXTransform.rescaleX(xScale);
+    
+    // Y-axis: shared zoom scale but independent pan
+    const chart1YTransform = d3.zoomIdentity.translate(0, chart1YPan).scale(sharedZoomScale);
+    const chart2YTransform = d3.zoomIdentity.translate(0, chart2YPan).scale(sharedZoomScale);
+    const newY1Scale = chart1YTransform.rescaleY(yScale);
+    const newY2Scale = chart2YTransform.rescaleY(y2Scale);
     
     // Update axes for both charts
     chart1Group.select('.x-axis')
@@ -154,11 +159,11 @@ function updateAllChartTransforms() {
     
     // Update zoom overlays to reflect current combined transform
     const chart1CombinedTransform = d3.zoomIdentity
-        .translate(currentXTransform.x, currentY1Transform.y)
-        .scale(currentXTransform.k);
+        .translate(sharedXTransform.x, chart1YPan)
+        .scale(sharedZoomScale);
     const chart2CombinedTransform = d3.zoomIdentity
-        .translate(currentXTransform.x, currentY2Transform.y)
-        .scale(currentXTransform.k);
+        .translate(sharedXTransform.x, chart2YPan)
+        .scale(sharedZoomScale);
     
     chart1Group.select('.zoom-overlay').call(
         chart1Data.zoom1.transform, chart1CombinedTransform
@@ -374,7 +379,7 @@ function plot(eqn) {
 
     // Track current snapped position
     let currentSnappedX = null;
-    const epsilonDy = d3.max(derivArr, d => Math.abs(d.dy)) * 0.02;
+    const epsilonDy = 0.1;
     const epsilonX = 0.1;
 
     function attachHoverBehavior(overlay, height) {
@@ -400,9 +405,13 @@ function plot(eqn) {
                 if (isDragging) return; // Don't show hover elements while dragging
                 
                 const [mx] = d3.pointer(event, overlay.node());
-                const currentXScale = currentXTransform.rescaleX(xScale);
-                const currentYScale = currentY1Transform.rescaleY(yScale);
-                const currentY2Scale = currentY2Transform.rescaleY(y2Scale);
+                
+                // Create current scales using the shared zoom and individual pans
+                const currentXScale = sharedXTransform.rescaleX(xScale);
+                const chart1YTransform = d3.zoomIdentity.translate(0, chart1YPan).scale(sharedZoomScale);
+                const chart2YTransform = d3.zoomIdentity.translate(0, chart2YPan).scale(sharedZoomScale);
+                const currentYScale = chart1YTransform.rescaleY(yScale);
+                const currentY2Scale = chart2YTransform.rescaleY(y2Scale);
                 
                 let x0 = currentXScale.invert(mx);
                 
@@ -456,9 +465,10 @@ function plot(eqn) {
     attachHoverBehavior(overlay2, height2);
 
     // Reset zoom transforms
-    currentXTransform = d3.zoomIdentity;
-    currentY1Transform = d3.zoomIdentity;
-    currentY2Transform = d3.zoomIdentity;
+    sharedXTransform = d3.zoomIdentity;
+    sharedZoomScale = 1;
+    chart1YPan = 0;
+    chart2YPan = 0;
 }
 
 // Initialize the application
